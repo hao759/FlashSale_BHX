@@ -23,7 +23,7 @@
         header {
             position: sticky;
             top: 0;
-            z-index: 10;
+            z-index: 20;
             background: #fff;
             padding: 14px 18px;
             box-shadow: 0 2px 8px #0001;
@@ -202,12 +202,12 @@
         */
         const API_URL = "https://api.bachhoaxanh.com/game/gw/FlashSale/GetListProductFlashSale";
         const TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJWd2JXd05YQmpaR3dkSWJZLWZDak5QZVFTMlpMck9Bd1d5TjBDejRueWlBIn0.eyJleHAiOjE3OTI1NTc4MzYsImlhdCI6MTc5MjU1NzUzNiwianRpIjoib25ydHJ0OjJhYWMwMWE0LThjZTgtZDE2My02MmUxLWI5YWE5MjFkM2YxMiIsImlzcyI6Imh0dHBzOi8vYXV0aGVuLmJoeHdvcmsudm4vcmVhbG1zL2JoeC1lY29tbWVyY2UiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiYWFlYzcyYWUtMmZiNS00ZThjLWExMDEtZTYyMTJlZGYzNmNmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYmh4Iiwic2lkIjoiajRVZ2tKLVBnTS11SzhUUUVTQ3A5d2xmIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJkZWZhdWx0LXJvbGVzLWJoeC1lY29tbWVyY2UiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZGV2aWNlX2lkIjoiMzAzN2E0NzgtNTQ4OS00MTQyLTgyNjUtYWFmNzIzYWMwYjNhIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYmh4XzExMTY4MTgzODYiLCJjdXN0b21lcl9pZCI6IjExMTY4MTgzODYifQ.Wpf56jjKlJv0sk6UdX0v6gzuJB9fm3MqjKyENZuo7nLrsIge5F0gWMW-2e9zxRMJS7ZnPoaYKDy1FkddQgv59kxqUqOp_AWFOxATVahbPHKHsnl_Pa3OtPhlYyTgfYppOhoIgn82AjGdZSGKALBLrxnl8k0xOnj1_EMp1Y2JD_bEk7aFq_ezBhRr0Iu_bCcKsxcl9dx1PVX6yzKXhlRJ8Br5ELmnfB3Y85L5fhxyy0m4oiUNkX7CI5TeGZIhu2lOQtkolmGbLjrmGqx8He8KYqtefNT4FMm4XMEKsfNl_pEORvM3Apw5Os0eEoRFWmL5oQbvW_VN5KxL-mHTAcQfEw"; // Dán token sau chữ "Bearer " vào đây
-
+        const PageSizeconst = 15
         const REQUEST_BODY = {
             ProvinceId: 1027,
             StoreId: 28577,
             PageIndex: 1,
-            PageSize: 99,
+            PageSize: PageSizeconst,
             TimeLineId: 1, // JavaScript sẽ thay giá trị này theo nút được bấm
             customerId: 1116818386,
             wardId: 100630
@@ -352,7 +352,7 @@
                     "xapikey": "bhx-api-core-2022"
                 };
 
-                // PageSize = 99. Nếu một trang trả đủ 99 sản phẩm thì gọi trang kế tiếp.
+                // PageSize = 20. Nếu một trang trả đủ 20 sản phẩm thì gọi trang kế tiếp.
                 const allProducts = [];
                 let pageIndex = 1;
                 while (true) {
@@ -362,7 +362,7 @@
                     const body = {
                         ...REQUEST_BODY,
                         TimeLineId: timelineId,
-                        PageSize: 99,
+                        PageSize: PageSizeconst,
                         PageIndex: pageIndex
                     };
 
@@ -380,8 +380,8 @@
                         : [];
                     allProducts.push(...pageProducts);
 
-                    // Nếu ít hơn 99 phần tử, đây là trang cuối cùng.
-                    if (pageProducts.length < 99) break;
+                    // Nếu ít hơn 20 phần tử, đây là trang cuối cùng.
+                    if (pageProducts.length < PageSizeconst) break;
                     pageIndex += 1;
                 }
 
