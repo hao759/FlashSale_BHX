@@ -176,6 +176,13 @@
     <header>
         <h1>BHX Flash Sale</h1>
         <nav id="timelines" aria-label="Chọn khung giờ"></nav>
+        <div id="sortControls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <label for="sortMode" style="font-weight:600">Hiển thị kết quả theo:</label>
+            <select id="sortMode" style="padding:8px 10px;border:1px solid #ccc;border-radius:8px;background:#fff">
+                <option value="discount">Phần trăm giảm giá</option>
+                <option value="price">productPrices.price (giá tăng dần)</option>
+            </select>
+        </div>
     </header>
     <main>
         <p id="status">Chọn khung giờ để tải sản phẩm.</p>
@@ -205,6 +212,8 @@
         const productsContainer = document.getElementById("products");
         const statusElement = document.getElementById("status");
         let activeTimeline = null;
+        let allLoadedProducts = [];
+        const sortModeSelect = document.getElementById("sortMode");
 
         function formatVND(value) {
             if (typeof value !== "number" || !Number.isFinite(value)) return "";
@@ -225,6 +234,20 @@
                 sysPrice: Number(price.sysPrice ?? 0),
                 discount: Number(price.discountPercent ?? 0)
             };
+        }
+
+        function sortProducts(list) {
+            if (sortModeSelect.value === "price") {
+                // Sắp xếp theo productPrices.price tăng dần.
+                return [...list].sort((a, b) => {
+                    const priceA = Number((Array.isArray(a.productPrices) ? a.productPrices : [])
+                        .find(p => p.isCanBuy)?.price ?? a.productPrices?.[0]?.price ?? Infinity);
+                    const priceB = Number((Array.isArray(b.productPrices) ? b.productPrices : [])
+                        .find(p => p.isCanBuy)?.price ?? b.productPrices?.[0]?.price ?? Infinity);
+                    return priceA - priceB;
+                });
+            }
+            return [...list].sort((a, b) => getPriceInfo(b).discount - getPriceInfo(a).discount);
         }
 
         function renderProducts(list) {
@@ -289,6 +312,7 @@
             });
 
             productsContainer.innerHTML = "";
+            allLoadedProducts = [];
             statusElement.textContent = `Đang tải dữ liệu khung giờ ${timelineId}...`;
 
             if (!TOKEN.trim()) {
@@ -345,11 +369,10 @@
                     pageIndex += 1;
                 }
 
-                // Sắp xếp tất cả sản phẩm từ mọi trang theo % giảm giá giảm dần.
-                allProducts.sort((a, b) => getPriceInfo(b).discount - getPriceInfo(a).discount);
-                renderProducts(allProducts);
-                statusElement.textContent =
-                    `Khung giờ ${timelineId}: ${allProducts.length} sản phẩm · đã tải ${pageIndex} trang · sắp xếp giảm dần theo % giảm giá`;
+                allLoadedProducts = allProducts;
+                const sortedProducts = sortProducts(allLoadedProducts);
+                renderProducts(sortedProducts);
+                updateStatus(timelineId, allLoadedProducts.length, pageIndex);
             } catch (error) {
                 statusElement.textContent = "Không tải được dữ liệu.";
                 productsContainer.innerHTML = `<div class="error">${escapeHTML(error.message)}
@@ -357,6 +380,21 @@
 Nếu console báo lỗi CORS, cần gọi API qua backend/proxy cùng origin. Trình duyệt không cho phép HTML tự bỏ qua CORS.</div>`;
             }
         }
+
+        function updateStatus(timelineId, count, pageIndex = null) {
+            const sortLabel = sortModeSelect.value === "price"
+                ? "giá productPrices.price tăng dần"
+                : "% giảm giá giảm dần";
+            statusElement.textContent = `Khung giờ ${timelineId}: ${count} sản phẩm`
+                + (pageIndex !== null ? ` · đã tải ${pageIndex} trang` : "")
+                + ` · sắp xếp theo ${sortLabel}`;
+        }
+
+        sortModeSelect.addEventListener("change", () => {
+            if (activeTimeline === null || !allLoadedProducts.length) return;
+            renderProducts(sortProducts(allLoadedProducts));
+            updateStatus(activeTimeline, allLoadedProducts.length);
+        });
 
         function escapeHTML(value) {
             return String(value).replace(/[&<>"']/g, char => ({
