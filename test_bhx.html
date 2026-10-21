@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BHX Flash Sale</title>
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            color: #222;
+            background: #f5f6f7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #fff;
+            padding: 14px 18px;
+            box-shadow: 0 2px 8px #0001;
+        }
+
+        header h1 {
+            margin: 0 0 12px;
+            font-size: 20px;
+        }
+
+        #timelines {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .timeline {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 9px 15px;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .timeline.active {
+            color: #fff;
+            background: #087f3e;
+            border-color: #087f3e;
+        }
+
+        main {
+            max-width: 1200px;
+            padding: 18px;
+            margin: auto;
+        }
+
+        #status {
+            margin: 0 0 14px;
+            color: #555;
+        }
+
+        #products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px #0000000c;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .photo {
+            height: 210px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .photo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .info {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 8px;
+        }
+
+        .name {
+            font-size: 15px;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        .discount {
+            color: #d71920;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .prices {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .sale {
+            color: #087f3e;
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .original {
+            color: #888;
+            text-decoration: line-through;
+            font-size: 13px;
+        }
+
+        .empty,
+        .error {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .error {
+            color: #b00020;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 500px) {
+            main {
+                padding: 12px;
+            }
+
+            #products {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 9px;
+            }
+
+            .photo {
+                height: 150px;
+            }
+
+            .name {
+                font-size: 13px;
+            }
+
+            .sale {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>BHX Flash Sale</h1>
+        <nav id="timelines" aria-label="Chọn khung giờ"></nav>
+    </header>
+    <main>
+        <p id="status">Chọn khung giờ để tải sản phẩm.</p>
+        <section id="products"></section>
+    </main>
+    <script>
+        /*
+          Lưu ý:
+          - Dán Bearer token mới của bạn vào TOKEN bên dưới.
+          - Token trong ví dụ có thể hết hạn; không nên chia sẻ token thật công khai.
+          - Nếu trình duyệt báo CORS, hãy gọi API qua backend/proxy của riêng bạn.
+        */
+        const API_URL = "https://api.bachhoaxanh.com/game/gw/FlashSale/GetListProductFlashSale";
+        const TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJWd2JXd05YQmpaR3dkSWJZLWZDak5QZVFTMlpMck9Bd1d5TjBDejRueWlBIn0.eyJleHAiOjE3OTI1NTc4MzYsImlhdCI6MTc5MjU1NzUzNiwianRpIjoib25ydHJ0OjJhYWMwMWE0LThjZTgtZDE2My02MmUxLWI5YWE5MjFkM2YxMiIsImlzcyI6Imh0dHBzOi8vYXV0aGVuLmJoeHdvcmsudm4vcmVhbG1zL2JoeC1lY29tbWVyY2UiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiYWFlYzcyYWUtMmZiNS00ZThjLWExMDEtZTYyMTJlZGYzNmNmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYmh4Iiwic2lkIjoiajRVZ2tKLVBnTS11SzhUUUVTQ3A5d2xmIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJkZWZhdWx0LXJvbGVzLWJoeC1lY29tbWVyY2UiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZGV2aWNlX2lkIjoiMzAzN2E0NzgtNTQ4OS00MTQyLTgyNjUtYWFmNzIzYWMwYjNhIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYmh4XzExMTY4MTgzODYiLCJjdXN0b21lcl9pZCI6IjExMTY4MTgzODYifQ.Wpf56jjKlJv0sk6UdX0v6gzuJB9fm3MqjKyENZuo7nLrsIge5F0gWMW-2e9zxRMJS7ZnPoaYKDy1FkddQgv59kxqUqOp_AWFOxATVahbPHKHsnl_Pa3OtPhlYyTgfYppOhoIgn82AjGdZSGKALBLrxnl8k0xOnj1_EMp1Y2JD_bEk7aFq_ezBhRr0Iu_bCcKsxcl9dx1PVX6yzKXhlRJ8Br5ELmnfB3Y85L5fhxyy0m4oiUNkX7CI5TeGZIhu2lOQtkolmGbLjrmGqx8He8KYqtefNT4FMm4XMEKsfNl_pEORvM3Apw5Os0eEoRFWmL5oQbvW_VN5KxL-mHTAcQfEw"; // Dán token sau chữ "Bearer " vào đây
+
+        const REQUEST_BODY = {
+            ProvinceId: 1027,
+            StoreId: 28577,
+            PageIndex: 1,
+            PageSize: 99,
+            TimeLineId: 1, // JavaScript sẽ thay giá trị này theo nút được bấm
+            customerId: 1116818386,
+            wardId: 100630
+        };
+
+        const timelineContainer = document.getElementById("timelines");
+        const productsContainer = document.getElementById("products");
+        const statusElement = document.getElementById("status");
+        let activeTimeline = null;
+
+        function formatVND(value) {
+            if (typeof value !== "number" || !Number.isFinite(value)) return "";
+            return new Intl.NumberFormat("vi-VN", {
+                style: "currency", currency: "VND", maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        function getPriceInfo(product) {
+            const prices = Array.isArray(product.productPrices) ? product.productPrices : [];
+            // Ưu tiên giá thuộc timeline đang chọn nếu API có trả trong lstCampaingInfo.
+            const campaign = (product.lstCampaingInfo || []).find(
+                item => Number(item.timeLineId) === Number(activeTimeline) && item.productPrice
+            );
+            const price = campaign?.productPrice || prices.find(p => p.isCanBuy) || prices[0] || {};
+            return {
+                price: Number(price.price ?? 0),
+                sysPrice: Number(price.sysPrice ?? 0),
+                discount: Number(price.discountPercent ?? 0)
+            };
+        }
+
+        function renderProducts(list) {
+            productsContainer.innerHTML = "";
+            if (!list.length) {
+                productsContainer.innerHTML = '<div class="empty">Không có sản phẩm trong khung giờ này.</div>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            for (const product of list) {
+                const info = getPriceInfo(product);
+                const card = document.createElement("article");
+                card.className = "card";
+
+                const photo = document.createElement("div");
+                photo.className = "photo";
+                const img = document.createElement("img");
+                img.src = product.avatar || product.avatarTmp || "";
+                img.alt = product.name || "Sản phẩm";
+                img.loading = "lazy";
+                img.onerror = () => { img.style.display = "none"; };
+                photo.appendChild(img);
+
+                const detail = document.createElement("div");
+                detail.className = "info";
+                const name = document.createElement("div");
+                name.className = "name";
+                name.textContent = product.name || product.fullName || "Sản phẩm không có tên";
+
+                const discount = document.createElement("div");
+                discount.className = "discount";
+                discount.textContent = `Giảm ${info.discount}%`;
+
+                const prices = document.createElement("div");
+                prices.className = "prices";
+                const sale = document.createElement("span");
+                sale.className = "sale";
+                sale.textContent = formatVND(info.price);
+                prices.appendChild(sale);
+
+                if (info.sysPrice > info.price) {
+                    const original = document.createElement("span");
+                    original.className = "original";
+                    original.textContent = formatVND(info.sysPrice);
+                    prices.appendChild(original);
+                }
+
+                detail.append(name, discount, prices);
+                card.append(photo, detail);
+                fragment.appendChild(card);
+            }
+            productsContainer.appendChild(fragment);
+        }
+
+        async function loadTimeline(timelineId) {
+            activeTimeline = timelineId;
+            document.querySelectorAll(".timeline").forEach(button => {
+                const selected = Number(button.dataset.timeline) === timelineId;
+                button.classList.toggle("active", selected);
+                button.setAttribute("aria-pressed", String(selected));
+            });
+
+            productsContainer.innerHTML = "";
+            statusElement.textContent = `Đang tải dữ liệu khung giờ ${timelineId}...`;
+
+            if (!TOKEN.trim()) {
+                statusElement.textContent = "Chưa cấu hình Bearer token.";
+                productsContainer.innerHTML =
+                    '<div class="empty">Mở file HTML, tìm <code>const TOKEN = ""</code> và dán token mới vào giữa hai dấu ngoặc kép.</div>';
+                return;
+            }
+
+            try {
+                const headers = {
+                    "accept": "application/json, text/plain, */*",
+                    "content-type": "application/json",
+                    "authorization": `Bearer ${TOKEN}`,
+                    "customer-id": "1116818386",
+                    "deviceid": "3037a478-5489-4142-8265-aaf723ac0b3a",
+                    "origin": "https://www.bachhoaxanh.com",
+                    "platform": "webnew",
+                    "referer-url": "https://www.bachhoaxanh.com/khuyen-mai",
+                    "username": "0765795538",
+                    "xapikey": "bhx-api-core-2022"
+                };
+
+                // PageSize = 99. Nếu một trang trả đủ 99 sản phẩm thì gọi trang kế tiếp.
+                const allProducts = [];
+                let pageIndex = 1;
+                while (true) {
+                    statusElement.textContent =
+                        `Đang tải khung giờ ${timelineId} · trang ${pageIndex} · đã lấy ${allProducts.length} sản phẩm...`;
+
+                    const body = {
+                        ...REQUEST_BODY,
+                        TimeLineId: timelineId,
+                        PageSize: 99,
+                        PageIndex: pageIndex
+                    };
+
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(body)
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                    const result = await response.json();
+                    if (result.code !== 0) throw new Error(`API trả về code=${result.code}`);
+
+                    const pageProducts = Array.isArray(result.data?.lstProduct)
+                        ? result.data.lstProduct
+                        : [];
+                    allProducts.push(...pageProducts);
+
+                    // Nếu ít hơn 99 phần tử, đây là trang cuối cùng.
+                    if (pageProducts.length < 99) break;
+                    pageIndex += 1;
+                }
+
+                // Sắp xếp tất cả sản phẩm từ mọi trang theo % giảm giá giảm dần.
+                allProducts.sort((a, b) => getPriceInfo(b).discount - getPriceInfo(a).discount);
+                renderProducts(allProducts);
+                statusElement.textContent =
+                    `Khung giờ ${timelineId}: ${allProducts.length} sản phẩm · đã tải ${pageIndex} trang · sắp xếp giảm dần theo % giảm giá`;
+            } catch (error) {
+                statusElement.textContent = "Không tải được dữ liệu.";
+                productsContainer.innerHTML = `<div class="error">${escapeHTML(error.message)}
+
+Nếu console báo lỗi CORS, cần gọi API qua backend/proxy cùng origin. Trình duyệt không cho phép HTML tự bỏ qua CORS.</div>`;
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, char => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            }[char]));
+        }
+
+        // Hiện các nút 1–6; có thể sửa mảng này nếu API hỗ trợ số timeline khác.
+        [1, 2, 3, 4, 5, 6, 7, 10].forEach(id => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "timeline";
+            button.textContent = id;
+            button.dataset.timeline = id;
+            button.addEventListener("click", () => loadTimeline(id));
+            timelineContainer.appendChild(button);
+        });
+    </script>
+</body>
+
+</html>
