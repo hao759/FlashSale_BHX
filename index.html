@@ -369,7 +369,8 @@ Nếu console báo lỗi CORS, cần gọi API qua backend/proxy cùng origin. T
             const button = document.createElement("button");
             button.type = "button";
             button.className = "timeline";
-            button.textContent = id;
+            // button.textContent = id;
+            button.textContent = id * 2 + 6 + 'h -' + (id * 2 + 8);
             button.dataset.timeline = id;
             button.addEventListener("click", () => loadTimeline(id));
             timelineContainer.appendChild(button);
