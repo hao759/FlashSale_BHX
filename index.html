@@ -183,6 +183,11 @@
                 <option value="discount">Phần trăm giảm giá</option>
             </select>
         </div>
+        <div id="searchControls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <label for="productSearch" style="font-weight:600">Tìm tên sản phẩm:</label>
+            <input id="productSearch" type="search" placeholder="Nhập tên sản phẩm..." autocomplete="off"
+                style="flex:1;min-width:220px;max-width:420px;padding:9px 12px;border:1px solid #ccc;border-radius:8px;background:#fff">
+        </div>
     </header>
     <main>
         <p id="status">Chọn khung giờ để tải sản phẩm.</p>
@@ -214,6 +219,17 @@
         let activeTimeline = null;
         let allLoadedProducts = [];
         const sortModeSelect = document.getElementById("sortMode");
+        const productSearchInput = document.getElementById("productSearch");
+
+        function getFilteredProducts(list) {
+            const keyword = productSearchInput.value.trim().toLocaleLowerCase("vi");
+            if (!keyword) return list;
+            return list.filter(product =>
+                String(product.fullName || product.name || "")
+                    .toLocaleLowerCase("vi")
+                    .includes(keyword)
+            );
+        }
 
         function formatVND(value) {
             if (typeof value !== "number" || !Number.isFinite(value)) return "";
@@ -370,7 +386,7 @@
                 }
 
                 allLoadedProducts = allProducts;
-                const sortedProducts = sortProducts(allLoadedProducts);
+                const sortedProducts = sortProducts(getFilteredProducts(allLoadedProducts));
                 renderProducts(sortedProducts);
                 updateStatus(timelineId, allLoadedProducts.length, pageIndex);
             } catch (error) {
@@ -392,8 +408,19 @@ Nếu console báo lỗi CORS, cần gọi API qua backend/proxy cùng origin. T
 
         sortModeSelect.addEventListener("change", () => {
             if (activeTimeline === null || !allLoadedProducts.length) return;
-            renderProducts(sortProducts(allLoadedProducts));
+            renderProducts(sortProducts(getFilteredProducts(allLoadedProducts)));
             updateStatus(activeTimeline, allLoadedProducts.length);
+        });
+
+        productSearchInput.addEventListener("input", () => {
+            if (activeTimeline === null) return;
+            renderProducts(sortProducts(getFilteredProducts(allLoadedProducts)));
+            const keyword = productSearchInput.value.trim();
+            if (keyword) {
+                statusElement.textContent = `Khung giờ ${activeTimeline}: tìm thấy ${getFilteredProducts(allLoadedProducts).length}/${allLoadedProducts.length} sản phẩm khớp "${keyword}".`;
+            } else {
+                updateStatus(activeTimeline, allLoadedProducts.length);
+            }
         });
 
         function escapeHTML(value) {
