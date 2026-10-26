@@ -407,6 +407,7 @@ Nếu console báo lỗi CORS, cần gọi API qua backend/proxy cùng origin. T
         }
 
         sortModeSelect.addEventListener("change", () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
             if (activeTimeline === null || !allLoadedProducts.length) return;
             renderProducts(sortProducts(getFilteredProducts(allLoadedProducts)));
             updateStatus(activeTimeline, allLoadedProducts.length);
